@@ -1,15 +1,16 @@
+// 📁 app/DiaryScreen.js
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from '../utils/transcribeAudio';
+import { summarizeText } from '../utils/summarizeText';
 
 export default function DiaryScreen() {
   const [recording, setRecording] = useState(null);
-  const [recordedURI, setRecordedURI] = useState(null);
   const [transcript, setTranscript] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 녹음 시작
   async function startRecording() {
     try {
       const { status } = await Audio.requestPermissionsAsync();
@@ -26,87 +27,92 @@ export default function DiaryScreen() {
       const { recording } = await Audio.Recording.createAsync(
         Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
       );
-
       setRecording(recording);
     } catch (err) {
       console.error('녹음 시작 에러:', err);
     }
   }
 
-  // 녹음 중지 및 Clova 전송
   async function stopRecording() {
     try {
-      if (!recording) return;
-
-      setIsProcessing(true);
+      setIsLoading(true);
 
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
-      setRecordedURI(uri);
       setRecording(null);
-      console.log('녹음 파일 저장됨:', uri);
 
       const response = await transcribeAudio(uri);
-
-      if (response && response.text) {
+      if (response?.text) {
         setTranscript(response.text);
-      } else {
-        setTranscript('(인식 결과 없음)');
-      }
 
+        const summaryResult = await summarizeText(response.text);
+        setSummary(summaryResult);
+      } else {
+        setTranscript('(변환 실패)');
+      }
     } catch (err) {
-      console.error('녹음 중지 에러:', err);
-      setTranscript('(에러 발생)');
+      console.error('오류:', err);
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🎙️ 음성 일기 녹음</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>🎙️ 음성 일기</Text>
 
-      {recording === null ? (
-        <Button title="녹음 시작" onPress={startRecording} disabled={isProcessing} />
+      {recording ? (
+        <Button title="🛑 녹음 중지 및 변환" onPress={stopRecording} disabled={isLoading} />
       ) : (
-        <Button title="녹음 중지 및 텍스트 변환" onPress={stopRecording} disabled={isProcessing} />
+        <Button title="🎤 녹음 시작" onPress={startRecording} disabled={isLoading} />
       )}
 
-      {isProcessing && (
-        <Text style={styles.processing}>🌀 변환 중입니다...</Text>
+      {isLoading && <Text style={styles.loading}>⏳ 처리 중입니다...</Text>}
+
+      {transcript !== '' && (
+        <>
+          <Text style={styles.subtitle}>📝 인식된 내용</Text>
+          <Text style={styles.block}>{transcript}</Text>
+        </>
       )}
 
-      {transcript !== '' && !isProcessing && (
-        <Text style={styles.transcript}>📝 변환 결과:{"\n"}{transcript}</Text>
+      {summary !== '' && (
+        <>
+          <Text style={styles.subtitle}>📌 요약</Text>
+          <Text style={styles.block}>{summary}</Text>
+        </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 24,
-    justifyContent: 'center',
     backgroundColor: '#fff',
+    flexGrow: 1,
+    justifyContent: 'center'
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 24,
-    textAlign: 'center',
+    marginBottom: 20,
+    textAlign: 'center'
   },
-  processing: {
-    marginTop: 20,
-    fontSize: 16,
-    color: 'orange',
-    textAlign: 'center',
-  },
-  transcript: {
-    marginTop: 24,
+  subtitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
+    marginTop: 20,
+    fontWeight: 'bold'
   },
+  block: {
+    backgroundColor: '#f5f5f5',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8
+  },
+  loading: {
+    marginTop: 20,
+    textAlign: 'center',
+    color: 'orange'
+  }
 });
