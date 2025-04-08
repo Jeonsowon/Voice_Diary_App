@@ -1,8 +1,9 @@
-// 📁 app/screens/HomeScreen.js
+// 파일: app/screens/HomeScreen.js
 import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Modal } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Calendar } from 'react-native-calendars';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 
 const screenHeight = Dimensions.get('window').height;
 const pastelOptions = {
@@ -14,26 +15,43 @@ const pastelOptions = {
   'Purple': '#F9F2FF',
   'Beige': '#FDF6EC',
 };
-const textColor = '#4E403B'
-const todayBackColor = '#FFB6B6'
+const textColor = '#4E403B';
+const todayBackColor = '#FFB6B6';
 const disabledTextColor = 'rgba(78,64,59,0.4)';
 
 export default function HomeScreen({ navigation }) {
   const [backgroundColor, setBackgroundColor] = useState(pastelOptions['Gray']);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const todayString = new Date().toISOString().split('T')[0];
 
   const onDayPress = (day) => {
-    navigation.navigate('Diary', { date: day.dateString });
+    if (navigation && navigation.navigate) {
+      navigation.navigate('Diary', { date: day.dateString });
+    } else {
+      console.warn('navigation prop is missing or invalid');
+    }
+  };
+
+  const handleLoginToggle = () => {
+    setLoggedIn(!loggedIn);
   };
 
   return (
     <View style={[styles.container, { backgroundColor }]}> 
-      <TouchableOpacity 
-        style={styles.colorButton} 
-        onPress={() => setModalVisible(true)}>
-        <Text style={{ color: textColor }}>🎨</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomRightButtons}>
+        <TouchableOpacity 
+          style={styles.iconButton} 
+          onPress={() => setModalVisible(true)}>
+          <MaterialIcons name="palette" size={30} color={textColor} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.iconButton} 
+          onPress={handleLoginToggle}>
+          <Feather name={loggedIn ? 'log-out' : 'log-in'} size={30} color={textColor} />
+        </TouchableOpacity>
+      </View>
 
       <Modal
         transparent={true}
@@ -69,7 +87,9 @@ export default function HomeScreen({ navigation }) {
             const isDisabled = state === 'disabled';
 
             return (
-              <View style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
+              <TouchableOpacity
+                onPress={() => onDayPress(date)}
+                style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
                 <View style={isToday ? styles.todayCircle : null}>
                   <Text style={{ 
                     color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
@@ -79,7 +99,7 @@ export default function HomeScreen({ navigation }) {
                     {date.day}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
           theme={{
@@ -97,19 +117,16 @@ export default function HomeScreen({ navigation }) {
               dayHeader: {
                 color: textColor,
                 fontSize: 14,
-                paddingTop: 8,
+                paddingTop: 10,
                 paddingBottom: 8,
               },
             },
 
             'stylesheet.calendar.main': {
               container: {
-                // 달력의 전체 감싸는 뷰
                 backgroundColor: backgroundColor,
               },
               week: {
-                // 각 주차(row)를 감싸는 뷰
-                height: 100,
                 flexDirection: 'row',
                 justifyContent: 'space-around',
                 backgroundColor: backgroundColor,
@@ -125,7 +142,7 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
+    paddingTop: 10,
   },
   calendarWrapper: {
     height: screenHeight,
@@ -140,14 +157,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  colorButton: {
+  bottomRightButtons: {
     position: 'absolute',
-    top: 15,
-    left: 15,
+    bottom: 20,
+    right: 15,
+    flexDirection: 'row',
     zIndex: 1,
-    backgroundColor: '#FFFFFFAA',
+  },
+  iconButton: {
+    backgroundColor: '#FFFFFFDD',
     padding: 6,
+    marginLeft: 8,
     borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   modalOverlay: {
     flex: 1,
