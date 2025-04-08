@@ -6,19 +6,20 @@ import { Calendar } from 'react-native-calendars';
 
 const screenHeight = Dimensions.get('window').height;
 const pastelOptions = {
-  '민트화이트': '#F2FFF9',
-  '핑크화이트': '#FFF2F2',
-  '옐로우화이트': '#FFFDE7',
-  '퍼플화이트': '#F9F2FF',
-  '블루화이트': '#F0F8FF',
-  '베이지화이트': '#FDF6EC',
-  '그레이화이트': '#FAFAFA'
+  'Gray': '#FAFAFA',
+  'Pink': '#FFF2F2',
+  'Yellow': '#FFFDE7',
+  'Mint': '#F2FFF9',
+  'Sky Blue': '#F0F8FF',
+  'Purple': '#F9F2FF',
+  'Beige': '#FDF6EC',
 };
 const textColor = '#4E403B'
 const todayBackColor = '#FFB6B6'
+const disabledTextColor = 'rgba(78,64,59,0.4)';
 
 export default function HomeScreen({ navigation }) {
-  const [backgroundColor, setBackgroundColor] = useState(pastelOptions['민트화이트']);
+  const [backgroundColor, setBackgroundColor] = useState(pastelOptions['Gray']);
   const [modalVisible, setModalVisible] = useState(false);
   const todayString = new Date().toISOString().split('T')[0];
 
@@ -57,19 +58,21 @@ export default function HomeScreen({ navigation }) {
 
       <View style={[styles.calendarWrapper, { backgroundColor }]}>
         <Calendar
+          disableAllTouchEventsForDisabledDays={true}
           hideDayNames={false}
           onDayPress={onDayPress}
           style={{ backgroundColor }}
-          dayComponent={({ date }) => {
+          dayComponent={({ date, state }) => {
             const dayOfWeek = new Date(date.dateString).getDay();
             const isSunday = dayOfWeek === 0;
             const isToday = date.dateString === todayString;
+            const isDisabled = state === 'disabled';
 
             return (
-              <View style={{ height: 110, alignItems: 'center', backgroundColor }}>
+              <View style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
                 <View style={isToday ? styles.todayCircle : null}>
                   <Text style={{ 
-                    color: isSunday ? 'red' : textColor, 
+                    color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
                     fontSize: isToday ? 20 : 18, 
                     fontWeight: 'normal', 
                   }}>
@@ -88,6 +91,30 @@ export default function HomeScreen({ navigation }) {
             arrowColor: textColor,
             textDayFontSize: 20,
             textMonthFontSize: 20,
+            textDisabledColor: disabledTextColor,
+
+            'stylesheet.calendar.header': {
+              dayHeader: {
+                color: textColor,
+                fontSize: 14,
+                paddingTop: 8,
+                paddingBottom: 8,
+              },
+            },
+
+            'stylesheet.calendar.main': {
+              container: {
+                // 달력의 전체 감싸는 뷰
+                backgroundColor: backgroundColor,
+              },
+              week: {
+                // 각 주차(row)를 감싸는 뷰
+                height: 100,
+                flexDirection: 'row',
+                justifyContent: 'space-around',
+                backgroundColor: backgroundColor,
+              },
+            },
           }}
         />
       </View>
@@ -98,9 +125,10 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 10,
+    paddingTop: 20,
   },
   calendarWrapper: {
+    height: screenHeight,
     borderRadius: 10,
     marginHorizontal: 5,
   },
