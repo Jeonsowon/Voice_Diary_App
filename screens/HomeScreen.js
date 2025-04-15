@@ -119,6 +119,8 @@ export default function HomeScreen({ navigation }) {
                 fontSize: 14,
                 paddingTop: 10,
                 paddingBottom: 8,
+                alignItems: 'center',
+                justifyContent: 'center'
               },
             },
 

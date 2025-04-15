@@ -1,15 +1,19 @@
 // 📁 app/DiaryScreen.js
 import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from '../utils/transcribeAudio';
 import { summarizeText } from '../utils/summarizeText';
+import { MaterialIcons } from '@expo/vector-icons';
 
-export default function DiaryScreen() {
+const screenHeight = Dimensions.get('window').height;
+const textColor = '#4E403B';
+
+export default function DiaryScreen({ route }) {
   const [recording, setRecording] = useState(null);
-  const [transcript, setTranscript] = useState('');
-  const [summary, setSummary] = useState('');
+  const [diaryText, setDiaryText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { date } = route.params;
 
   async function startRecording() {
     try {
@@ -43,12 +47,10 @@ export default function DiaryScreen() {
 
       const response = await transcribeAudio(uri);
       if (response?.text) {
-        setTranscript(response.text);
-
         const summaryResult = await summarizeText(response.text);
-        setSummary(summaryResult);
+        setDiaryText(summaryResult);
       } else {
-        setTranscript('(변환 실패)');
+        setDiaryText('(변환 실패)');
       }
     } catch (err) {
       console.error('오류:', err);
@@ -58,61 +60,99 @@ export default function DiaryScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>🎙️ 음성 일기</Text>
+    <View style={styles.container}>
+      <View style={styles.dateContainer}>
+        <Text style={styles.dateText}>{date}</Text>
+      </View>
+      
+      <View style={styles.textContainer}>
+        <TextInput
+          style={styles.textInput}
+          multiline
+          value={diaryText}
+          onChangeText={setDiaryText}
+          placeholder="오늘의 일기를 작성해보세요..."
+          placeholderTextColor="#999"
+        />
+      </View>
 
-      {recording ? (
-        <Button title="🛑 녹음 중지 및 변환" onPress={stopRecording} disabled={isLoading} />
-      ) : (
-        <Button title="🎤 녹음 시작" onPress={startRecording} disabled={isLoading} />
-      )}
-
-      {isLoading && <Text style={styles.loading}>⏳ 처리 중입니다...</Text>}
-
-      {transcript !== '' && (
-        <>
-          <Text style={styles.subtitle}>📝 인식된 내용</Text>
-          <Text style={styles.block}>{transcript}</Text>
-        </>
-      )}
-
-      {summary !== '' && (
-        <>
-          <Text style={styles.subtitle}>📌 요약</Text>
-          <Text style={styles.block}>{summary}</Text>
-        </>
-      )}
-    </ScrollView>
+      <View style={styles.recordingContainer}>
+        {recording ? (
+          <TouchableOpacity 
+            style={[styles.recordingButton, styles.stopButton]} 
+            onPress={stopRecording} 
+            disabled={isLoading}>
+            <MaterialIcons name="stop" size={30} color="white" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={[styles.recordingButton, styles.startButton]} 
+            onPress={startRecording} 
+            disabled={isLoading}>
+            <MaterialIcons name="mic" size={30} color="white" />
+          </TouchableOpacity>
+        )}
+        {isLoading && (
+          <Text style={styles.loadingText}>처리 중입니다...</Text>
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    flex: 1,
     backgroundColor: '#fff',
-    flexGrow: 1,
-    justifyContent: 'center'
   },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center'
+  dateContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  subtitle: {
+  dateText: {
     fontSize: 18,
-    marginTop: 20,
-    fontWeight: 'bold'
+    color: textColor,
+    fontWeight: 'bold',
   },
-  block: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8
+  textContainer: {
+    flex: 0.7,
+    padding: 20,
   },
-  loading: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: 'orange'
-  }
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    color: textColor,
+    textAlignVertical: 'top',
+  },
+  recordingContainer: {
+    flex: 0.3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  recordingButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  startButton: {
+    backgroundColor: '#FFB6B6',
+  },
+  stopButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: textColor,
+    fontSize: 14,
+  },
 });
