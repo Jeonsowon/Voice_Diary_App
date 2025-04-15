@@ -1,9 +1,11 @@
 // 파일: app/screens/HomeScreen.js
-import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Calendar } from 'react-native-calendars';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 const screenHeight = Dimensions.get('window').height;
 const pastelOptions = {
@@ -19,129 +21,142 @@ const textColor = '#4E403B';
 const todayBackColor = '#FFB6B6';
 const disabledTextColor = 'rgba(78,64,59,0.4)';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen() {
+  const { isLoggedIn, logout } = useAuth();
+  const navigation = useNavigation();
   const [backgroundColor, setBackgroundColor] = useState(pastelOptions['Gray']);
   const [modalVisible, setModalVisible] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
   const todayString = new Date().toISOString().split('T')[0];
 
-  const onDayPress = (day) => {
-    if (navigation && navigation.navigate) {
-      navigation.navigate('Diary', { date: day.dateString });
-    } else {
-      console.warn('navigation prop is missing or invalid');
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigation.replace('Login');
     }
+  }, [isLoggedIn, navigation]);
+
+  const onDayPress = (day) => {
+    if (!isLoggedIn) {
+      navigation.navigate('Login');
+      return;
+    }
+    navigation.navigate('Diary', { date: day.dateString });
   };
 
-  const handleLoginToggle = () => {
-    setLoggedIn(!loggedIn);
+  const handleLogout = () => {
+    logout();
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}> 
-      <View style={styles.bottomRightButtons}>
-        <TouchableOpacity 
-          style={styles.iconButton} 
-          onPress={() => setModalVisible(true)}>
-          <MaterialIcons name="palette" size={30} color={textColor} />
-        </TouchableOpacity>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+      <View style={styles.container}> 
+        <View style={styles.bottomRightButtons}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={() => setModalVisible(true)}>
+            <MaterialIcons name="palette" size={30} color={textColor} />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.iconButton} 
-          onPress={handleLoginToggle}>
-          <Feather name={loggedIn ? 'log-out' : 'log-in'} size={30} color={textColor} />
-        </TouchableOpacity>
-      </View>
-
-      <Modal
-        transparent={true}
-        animationType="fade"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Picker
-              selectedValue={backgroundColor}
-              onValueChange={(itemValue) => {
-                setBackgroundColor(itemValue);
-                setModalVisible(false);
-              }}>
-              {Object.entries(pastelOptions).map(([label, value]) => (
-                <Picker.Item key={value} label={label} value={value} />
-              ))}
-            </Picker>
-          </View>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={handleLogout}>
+            <Feather name="log-out" size={30} color={textColor} />
+          </TouchableOpacity>
         </View>
-      </Modal>
 
-      <View style={[styles.calendarWrapper, { backgroundColor }]}>
-        <Calendar
-          disableAllTouchEventsForDisabledDays={true}
-          hideDayNames={false}
-          onDayPress={onDayPress}
-          style={{ backgroundColor }}
-          dayComponent={({ date, state }) => {
-            const dayOfWeek = new Date(date.dateString).getDay();
-            const isSunday = dayOfWeek === 0;
-            const isToday = date.dateString === todayString;
-            const isDisabled = state === 'disabled';
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Picker
+                selectedValue={backgroundColor}
+                onValueChange={(itemValue) => {
+                  setBackgroundColor(itemValue);
+                  setModalVisible(false);
+                }}>
+                {Object.entries(pastelOptions).map(([label, value]) => (
+                  <Picker.Item key={value} label={label} value={value} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </Modal>
 
-            return (
-              <TouchableOpacity
-                onPress={() => onDayPress(date)}
-                style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
-                <View style={isToday ? styles.todayCircle : null}>
-                  <Text style={{ 
-                    color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
-                    fontSize: isToday ? 20 : 18, 
-                    fontWeight: 'normal', 
-                  }}>
-                    {date.day}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-          theme={{
-            backgroundColor: backgroundColor,
-            calendarBackground: backgroundColor,
-            textSectionTitleColor: textColor,
-            dayTextColor: textColor,
-            monthTextColor: textColor,
-            arrowColor: textColor,
-            textDayFontSize: 20,
-            textMonthFontSize: 20,
-            textDisabledColor: disabledTextColor,
+        <View style={[styles.calendarWrapper, { backgroundColor }]}>
+          <Calendar
+            disableAllTouchEventsForDisabledDays={true}
+            hideDayNames={false}
+            onDayPress={onDayPress}
+            style={{ backgroundColor }}
+            dayComponent={({ date, state }) => {
+              const dayOfWeek = new Date(date.dateString).getDay();
+              const isSunday = dayOfWeek === 0;
+              const isToday = date.dateString === todayString;
+              const isDisabled = state === 'disabled';
 
-            'stylesheet.calendar.header': {
-              dayHeader: {
-                color: textColor,
-                fontSize: 14,
-                paddingTop: 10,
-                paddingBottom: 8,
-                alignItems: 'center',
-                justifyContent: 'center'
+              return (
+                <TouchableOpacity
+                  onPress={() => onDayPress(date)}
+                  style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
+                  <View style={isToday ? styles.todayCircle : null}>
+                    <Text style={{ 
+                      color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
+                      fontSize: isToday ? 20 : 18, 
+                      fontWeight: 'normal', 
+                    }}>
+                      {date.day}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+            theme={{
+              backgroundColor: backgroundColor,
+              calendarBackground: backgroundColor,
+              textSectionTitleColor: textColor,
+              dayTextColor: textColor,
+              monthTextColor: textColor,
+              arrowColor: textColor,
+              textDayFontSize: 20,
+              textMonthFontSize: 20,
+              textDisabledColor: disabledTextColor,
+              textMonthFontSize: 24,
+
+              'stylesheet.calendar.header': {
+                dayHeader: {
+                  color: textColor,
+                  fontSize: 14,
+                  paddingTop: 15,
+                  paddingBottom: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                },
               },
-            },
 
-            'stylesheet.calendar.main': {
-              container: {
-                backgroundColor: backgroundColor,
+              'stylesheet.calendar.main': {
+                container: {
+                  backgroundColor: backgroundColor,
+                },
+                week: {
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                  backgroundColor: backgroundColor,
+                },
               },
-              week: {
-                flexDirection: 'row',
-                justifyContent: 'space-around',
-                backgroundColor: backgroundColor,
-              },
-            },
-          }}
-        />
+            }}
+          />
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     paddingTop: 10,

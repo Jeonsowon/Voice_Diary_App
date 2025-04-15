@@ -1,19 +1,29 @@
 // 📁 app/DiaryScreen.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, SafeAreaView } from 'react-native';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from '../utils/transcribeAudio';
 import { summarizeText } from '../utils/summarizeText';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 
 const screenHeight = Dimensions.get('window').height;
 const textColor = '#4E403B';
 
 export default function DiaryScreen({ route }) {
+  const { isLoggedIn } = useAuth();
+  const navigation = useNavigation();
   const [recording, setRecording] = useState(null);
   const [diaryText, setDiaryText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { date } = route.params;
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigation.replace('Login');
+    }
+  }, [isLoggedIn, navigation]);
 
   async function startRecording() {
     try {
@@ -60,50 +70,55 @@ export default function DiaryScreen({ route }) {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>{date}</Text>
-      </View>
-      
-      <View style={styles.textContainer}>
-        <TextInput
-          style={styles.textInput}
-          multiline
-          value={diaryText}
-          onChangeText={setDiaryText}
-          placeholder="오늘의 일기를 작성해보세요..."
-          placeholderTextColor="#999"
-        />
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>{date}</Text>
+        </View>
+        
+        <View style={styles.textContainer}>
+          <TextInput
+            style={styles.textInput}
+            multiline
+            value={diaryText}
+            onChangeText={setDiaryText}
+            placeholder="오늘의 일기를 작성해보세요..."
+            placeholderTextColor="#999"
+          />
+        </View>
 
-      <View style={styles.recordingContainer}>
-        {recording ? (
-          <TouchableOpacity 
-            style={[styles.recordingButton, styles.stopButton]} 
-            onPress={stopRecording} 
-            disabled={isLoading}>
-            <MaterialIcons name="stop" size={30} color="white" />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={[styles.recordingButton, styles.startButton]} 
-            onPress={startRecording} 
-            disabled={isLoading}>
-            <MaterialIcons name="mic" size={30} color="white" />
-          </TouchableOpacity>
-        )}
-        {isLoading && (
-          <Text style={styles.loadingText}>처리 중입니다...</Text>
-        )}
+        <View style={styles.recordingContainer}>
+          {recording ? (
+            <TouchableOpacity 
+              style={[styles.recordingButton, styles.stopButton]} 
+              onPress={stopRecording} 
+              disabled={isLoading}>
+              <MaterialIcons name="stop" size={30} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.recordingButton, styles.startButton]} 
+              onPress={startRecording} 
+              disabled={isLoading}>
+              <MaterialIcons name="mic" size={30} color="white" />
+            </TouchableOpacity>
+          )}
+          {isLoading && (
+            <Text style={styles.loadingText}>처리 중입니다...</Text>
+          )}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  container: {
+    flex: 1,
   },
   dateContainer: {
     padding: 20,
