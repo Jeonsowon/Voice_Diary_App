@@ -1,3 +1,4 @@
+// 파일: app/screens/LoginScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -11,13 +12,18 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert('오류', '아이디와 비밀번호를 모두 입력해주세요.');
       return;
     }
-    login();
-    navigation.replace('Main');
+
+    const success = await login({ username, password });
+    if (success) {
+      navigation.replace('Main');
+    } else {
+      Alert.alert('로그인 실패', '아이디 또는 비밀번호가 일치하지 않습니다.');
+    }
   };
 
   return (

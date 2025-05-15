@@ -1,3 +1,4 @@
+// 파일: utils/transcribeAudio.js
 import * as FileSystem from 'expo-file-system';
 import { CLOVA_API_KEY, CLOVA_API_URL } from '@env';
 

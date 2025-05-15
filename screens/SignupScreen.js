@@ -1,10 +1,13 @@
+// 파일: app/screens/SignupScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
 
 const textColor = '#4E403B';
 
 export default function SignupScreen() {
+  const { signup } = useAuth();
   const navigation = useNavigation();
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -12,7 +15,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name || !birthDate || !username || !password || !confirmPassword) {
       Alert.alert('오류', '모든 항목을 입력해주세요.');
       return;
@@ -23,10 +26,13 @@ export default function SignupScreen() {
       return;
     }
 
-    // TODO: 실제 회원가입 로직 구현
-    Alert.alert('성공', '회원가입이 완료되었습니다.', [
-      { text: '확인', onPress: () => navigation.navigate('Login') }
-    ]);
+    try {
+      await signup({ name, birthDate, username, password });
+      Alert.alert('회원가입 완료', '로그인 해주세요.');
+      navigation.navigate('Login');
+    } catch (e) {
+      Alert.alert('에러', e.message);
+    }
   };
 
   return (

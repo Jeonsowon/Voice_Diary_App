@@ -1,4 +1,4 @@
-// 파일: app/screens/HomeScreen.js
+// 📁 app/screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -6,6 +6,9 @@ import { Calendar } from 'react-native-calendars';
 import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { useColor } from '../contexts/ColorContext';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
 
 const screenHeight = Dimensions.get('window').height;
 const pastelOptions = {
@@ -22,15 +25,35 @@ const todayBackColor = '#FFB6B6';
 const disabledTextColor = 'rgba(78,64,59,0.4)';
 
 export default function HomeScreen() {
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout, currentUser } = useAuth();
   const navigation = useNavigation();
-  const [backgroundColor, setBackgroundColor] = useState(pastelOptions['Gray']);
+  const { color, changeColor } = useColor();
   const [modalVisible, setModalVisible] = useState(false);
+  const [emotionsByDate, setEmotionsByDate] = useState({});
   const todayString = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (!isLoggedIn) {
       navigation.replace('Login');
+    } else {
+      const fetchEmotions = async () => {
+        try {
+          const ref = collection(db, 'diaries');
+          const q = query(ref, where('userId', '==', currentUser.username));
+          const snapshot = await getDocs(q);
+          const map = {};
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.date && data.emotion) {
+              map[data.date] = data.emotion;
+            }
+          });
+          setEmotionsByDate(map);
+        } catch (err) {
+          console.error('감정 로딩 오류:', err);
+        }
+      };
+      fetchEmotions();
     }
   }, [isLoggedIn, navigation]);
 
@@ -47,9 +70,17 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: color }]}> 
       <View style={styles.container}> 
         <View style={styles.bottomRightButtons}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('DiaryList')}>
+            <MaterialIcons name="list" size={30} color={textColor} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('PastDiaryList')}>
+            <MaterialIcons name="history" size={30} color={textColor} />
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={styles.iconButton} 
             onPress={() => setModalVisible(true)}>
@@ -71,9 +102,9 @@ export default function HomeScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Picker
-                selectedValue={backgroundColor}
+                selectedValue={color}
                 onValueChange={(itemValue) => {
-                  setBackgroundColor(itemValue);
+                  changeColor(itemValue);
                   setModalVisible(false);
                 }}>
                 {Object.entries(pastelOptions).map(([label, value]) => (
@@ -84,46 +115,51 @@ export default function HomeScreen() {
           </View>
         </Modal>
 
-        <View style={[styles.calendarWrapper, { backgroundColor }]}>
+        <View style={[styles.calendarWrapper, { backgroundColor: color }]}>
           <Calendar
             disableAllTouchEventsForDisabledDays={true}
             hideDayNames={false}
             onDayPress={onDayPress}
-            style={{ backgroundColor }}
+            monthFormat={'MMMM yyyy'}
+            style={{ backgroundColor: color }}
             dayComponent={({ date, state }) => {
               const dayOfWeek = new Date(date.dateString).getDay();
               const isSunday = dayOfWeek === 0;
               const isToday = date.dateString === todayString;
               const isDisabled = state === 'disabled';
+              const emoji = emotionsByDate[date.dateString];
 
               return (
                 <TouchableOpacity
                   onPress={() => onDayPress(date)}
-                  style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor }}>
-                  <View style={isToday ? styles.todayCircle : null}>
-                    <Text style={{ 
-                      color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
-                      fontSize: isToday ? 20 : 18, 
-                      fontWeight: 'normal', 
-                    }}>
-                      {date.day}
-                    </Text>
+                  style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor: color }}>
+                  <View style={isToday ? styles.todayWrapper : null}>
+                    <View style={isToday ? styles.todayCircle : null}>
+                      <Text style={{ 
+                        color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
+                        fontSize: isToday ? 20 : 18, 
+                        fontWeight: 'normal',
+                      }}>
+                        {date.day}
+                      </Text>
+                    </View>
+                    {emoji && (
+                      <Text style={styles.emojiBelow}>{emoji}</Text>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
             }}
             theme={{
-              backgroundColor: backgroundColor,
-              calendarBackground: backgroundColor,
+              backgroundColor: color,
+              calendarBackground: color,
               textSectionTitleColor: textColor,
               dayTextColor: textColor,
               monthTextColor: textColor,
               arrowColor: textColor,
               textDayFontSize: 20,
-              textMonthFontSize: 20,
-              textDisabledColor: disabledTextColor,
               textMonthFontSize: 24,
-
+              textDisabledColor: disabledTextColor,
               'stylesheet.calendar.header': {
                 dayHeader: {
                   color: textColor,
@@ -134,15 +170,14 @@ export default function HomeScreen() {
                   justifyContent: 'center'
                 },
               },
-
               'stylesheet.calendar.main': {
                 container: {
-                  backgroundColor: backgroundColor,
+                  backgroundColor: color,
                 },
                 week: {
                   flexDirection: 'row',
                   justifyContent: 'space-around',
-                  backgroundColor: backgroundColor,
+                  backgroundColor: color,
                 },
               },
             }}
@@ -173,6 +208,14 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  todayWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiBelow: {
+    fontSize: 25,
+    marginTop: 5,
   },
   bottomRightButtons: {
     position: 'absolute',

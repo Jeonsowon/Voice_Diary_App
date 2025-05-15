@@ -8,6 +8,9 @@ import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import HomeScreen from './screens/HomeScreen';
 import DiaryScreen from './screens/DiaryScreen';
+import DiaryListScreen from './screens/DiaryListScreen';
+import PastDiaryListScreen from './screens/PastDiaryListScreen';
+import { ColorProvider } from './contexts/ColorContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +28,8 @@ function Navigation() {
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Diary" component={DiaryScreen} />
+          <Stack.Screen name="DiaryList" component={DiaryListScreen} />
+          <Stack.Screen name="PastDiaryList" component={PastDiaryListScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -34,12 +39,14 @@ function Navigation() {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Splash" component={SplashScreen} />
-          <Stack.Screen name="Main" component={Navigation} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ColorProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Main" component={Navigation} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ColorProvider>
     </AuthProvider>
   );
 }

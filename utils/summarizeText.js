@@ -31,7 +31,7 @@
 
 
 // open ai model
-// 📁 utils/summarizeText.js
+// 파일: utils/summarizeText.js
 import { OPENAI_API_KEY } from '@env';
 
 export async function summarizeText(text) {
@@ -47,7 +47,7 @@ export async function summarizeText(text) {
         messages: [
           {
             role: 'system',
-            content: `당신은 사용자가 작성한 하루의 일과를 일기로 요약해주는 비서입니다. 반드시 1인칭 시점 서술형으로 "오늘 누구와 어디에서 무엇을 했다."와 같은 문장으로 작성해주세요. 사용자가 구어체로 작성해도 서술형 문어체로 변환해주고, 일기처럼 하루를 정리하듯이 요약해주세요.`,
+            content: `당신은 사용자가 작성한 하루의 일과를 일기로 요약해주세요. 반드시 1인칭 시점 문어체로 "오늘 누구와 어디에서 무엇을 했다."와 같은 문장으로 작성해주세요. 사용자가 구어체로 작성해도 서술형 문어체로 변환해주고, 일기처럼 하루를 정리하듯이 요약해주세요.`,
           },
           {
             role: 'user',
