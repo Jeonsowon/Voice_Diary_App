@@ -10,6 +10,7 @@ import HomeScreen from './screens/HomeScreen';
 import DiaryScreen from './screens/DiaryScreen';
 import DiaryListScreen from './screens/DiaryListScreen';
 import PastDiaryListScreen from './screens/PastDiaryListScreen';
+import KeywordRankingScreen from './screens/KeywordRankingScreen';
 import { ColorProvider } from './contexts/ColorContext';
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +31,7 @@ function Navigation() {
           <Stack.Screen name="Diary" component={DiaryScreen} />
           <Stack.Screen name="DiaryList" component={DiaryListScreen} />
           <Stack.Screen name="PastDiaryList" component={PastDiaryListScreen} />
+          <Stack.Screen name="KeywordRanking" component={KeywordRankingScreen} />
         </>
       )}
     </Stack.Navigator>

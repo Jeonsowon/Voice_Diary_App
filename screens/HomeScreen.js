@@ -1,4 +1,4 @@
-// 📁 app/screens/HomeScreen.js
+// 파일: app/screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, Text, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -81,6 +81,10 @@ export default function HomeScreen() {
             <MaterialIcons name="history" size={30} color={textColor} />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('KeywordRanking')}>
+            <MaterialIcons name="star" size={30} color={textColor} />
+          </TouchableOpacity>
+
           <TouchableOpacity 
             style={styles.iconButton} 
             onPress={() => setModalVisible(true)}>
@@ -133,20 +137,16 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   onPress={() => onDayPress(date)}
                   style={{ width: '100%', height: 100, alignItems: 'center', backgroundColor: color }}>
-                  <View style={isToday ? styles.todayWrapper : null}>
-                    <View style={isToday ? styles.todayCircle : null}>
-                      <Text style={{ 
-                        color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
-                        fontSize: isToday ? 20 : 18, 
-                        fontWeight: 'normal',
-                      }}>
-                        {date.day}
-                      </Text>
-                    </View>
-                    {emoji && (
-                      <Text style={styles.emojiBelow}>{emoji}</Text>
-                    )}
+                  <View style={isToday ? styles.todayCircle : null}>
+                    <Text style={{ 
+                      color: isDisabled ? disabledTextColor : (isSunday ? 'red' : textColor), 
+                      fontSize: isToday ? 20 : 18, 
+                      fontWeight: 'normal',
+                    }}>
+                      {date.day}
+                    </Text>
                   </View>
+                  {emoji && <Text style={{ fontSize: 18, marginTop: 2 }}>{emoji}</Text>}
                 </TouchableOpacity>
               );
             }}
@@ -208,14 +208,6 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  todayWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emojiBelow: {
-    fontSize: 25,
-    marginTop: 5,
   },
   bottomRightButtons: {
     position: 'absolute',
