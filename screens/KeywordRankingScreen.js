@@ -1,13 +1,12 @@
 // 📁 app/screens/KeywordRankingScreen.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useColor } from '../contexts/ColorContext';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../firebase/firebaseConfig';
 import { MaterialIcons } from '@expo/vector-icons';
-import { extractKeywords } from '../utils/extractKeywords';
 
 export default function KeywordRankingScreen() {
   const { currentUser } = useAuth();
@@ -19,54 +18,41 @@ export default function KeywordRankingScreen() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [analysis, setAnalysis] = useState('');
 
   const formatMonth = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
   useEffect(() => {
-    const fetchAndAnalyze = async () => {
+    const fetchKeywords = async () => {
       try {
         const monthKey = formatMonth(selectedMonth);
         const ref = collection(db, 'diaries');
         const q = query(ref, where('userId', '==', currentUser.username));
         const snapshot = await getDocs(q);
 
-        const combinedText = [];
         const counters = { who: {}, where: {}, what: {} };
         const seenDates = new Set();
 
         snapshot.docs.forEach(doc => {
           const data = doc.data();
-          if (data.date?.startsWith(monthKey) && data.text) {
+          if (data.date?.startsWith(monthKey) && data.keywords) {
             if (seenDates.has(data.date)) return;
             seenDates.add(data.date);
-            combinedText.push(data.text);
+            ['who', 'where', 'what'].forEach(type => {
+              (data.keywords[type] || []).forEach(word => {
+                counters[type][word] = (counters[type][word] || 0) + 1;
+              });
+            });
           }
-        });
-
-        const allText = combinedText.join('\n');
-        const extracted = await extractKeywords(allText);
-
-        ['who', 'where', 'what'].forEach(type => {
-          (extracted[type] || []).forEach(word => {
-            counters[type][word] = (counters[type][word] || 0) + 1;
-          });
-        });
-
-        await setDoc(doc(db, 'keyword_rankings', `${currentUser.username}_${monthKey}`), {
-          userId: currentUser.username,
-          month: monthKey,
-          keywords: counters,
         });
 
         setKeywords(counters);
         setLoading(false);
       } catch (e) {
-        console.error('키워드 처리 오류:', e);
+        console.error('키워드 로딩 오류:', e);
         setLoading(false);
       }
     };
-    fetchAndAnalyze();
+    fetchKeywords();
   }, [selectedMonth]);
 
   const renderKeywordList = (title, data) => {
@@ -97,7 +83,9 @@ export default function KeywordRankingScreen() {
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>월별 키워드 랭킹</Text>
-
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+            <MaterialIcons name="arrow-back" size={28} color="#4E403B" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.monthNav}>
@@ -113,26 +101,20 @@ export default function KeywordRankingScreen() {
         {loading ? (
           <ActivityIndicator size="large" color="#888" />
         ) : (
-          <>
-            <FlatList
-              data={['who', 'where', 'what']}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) =>
-                renderKeywordList(
-                  item === 'who' ? '👤 자주 만난 사람들' :
-                  item === 'where' ? '📍 자주 간 장소들' :
-                  '📝 자주 한 활동들',
-                  keywords[item]
-                )
-              }
-              contentContainerStyle={styles.content}
-            />
-            {analysis && <Text style={styles.analysis}>{analysis}</Text>}
-          </>
+          <FlatList
+            data={['who', 'where', 'what']}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) =>
+              renderKeywordList(
+                item === 'who' ? '👤 자주 만난 사람들' :
+                item === 'where' ? '📍 자주 간 장소들' :
+                '📝 자주 한 활동들',
+                keywords[item]
+              )
+            }
+            contentContainerStyle={styles.content}
+          />
         )}
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
-          <MaterialIcons name="arrow-back" size={28} color="#4E403B" />
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -157,10 +139,6 @@ const styles = StyleSheet.create({
     color: '#4E403B',
   },
   backButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 25,
-    zIndex: 1,
     backgroundColor: '#fff',
     padding: 6,
     borderRadius: 20,
@@ -206,11 +184,5 @@ const styles = StyleSheet.create({
   },
   block: {
     marginBottom: 20,
-  },
-  analysis: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#4E403B',
-    lineHeight: 24,
   },
 });

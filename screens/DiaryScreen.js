@@ -1,10 +1,11 @@
-// 📁 app/DiaryScreen.js
+// 📁 app/screens/DiaryScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, SafeAreaView, Alert, Keyboard } from 'react-native';
 import { Audio } from 'expo-av';
 import { transcribeAudio } from '../utils/transcribeAudio';
 import { summarizeText } from '../utils/summarizeText';
-import { saveDiary, fetchDiary, deleteDiary } from '../utils/diaryService';
+import { extractKeywords } from '../utils/extractKeywords';
+import { saveDiary, fetchDiary } from '../utils/diaryService';
 import { recommendSongsFromDiary } from '../utils/recommendSongsGPT';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +23,7 @@ export default function DiaryScreen({ route }) {
   const [diaryText, setDiaryText] = useState('');
   const [recommendedSongs, setRecommendedSongs] = useState([]);
   const [emotionEmoji, setEmotionEmoji] = useState('🎵');
+  const [keywords, setKeywords] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const { date } = route.params;
 
@@ -34,6 +36,7 @@ export default function DiaryScreen({ route }) {
         if (result?.text) setDiaryText(result.text);
         if (result?.songs) setRecommendedSongs(result.songs);
         if (result?.emotion) setEmotionEmoji(result.emotion);
+        if (result?.keywords) setKeywords(result.keywords);
       };
       loadDiary();
     }
@@ -71,18 +74,21 @@ export default function DiaryScreen({ route }) {
       const response = await transcribeAudio(uri);
       if (response?.text) {
         const summary = await summarizeText(response.text);
-        const result = await recommendSongsFromDiary(summary);
+        const { emotion, songs } = await recommendSongsFromDiary(summary);
+        const extracted = await extractKeywords(summary);
 
         setDiaryText(summary);
-        setRecommendedSongs(result.songs || []);
-        setEmotionEmoji(result.emotion || '🎵');
+        setRecommendedSongs(songs);
+        setEmotionEmoji(emotion);
+        setKeywords(extracted);
 
         await saveDiary({
           userId: currentUser.username,
           date,
           text: summary,
-          songs: result.songs,
-          emotion: result.emotion,
+          songs,
+          emotion,
+          keywords: extracted,
         });
       } else {
         setDiaryText('(변환 실패)');
@@ -103,12 +109,20 @@ export default function DiaryScreen({ route }) {
         return;
       }
 
+      const extracted = await extractKeywords(diaryText);
+      setKeywords(extracted);
+
+      const { emotion, songs } = await recommendSongsFromDiary(diaryText);
+      setRecommendedSongs(songs);
+      setEmotionEmoji(emotion);
+
       await saveDiary({
         userId: currentUser.username,
         date,
         text: diaryText,
-        songs: recommendedSongs,
-        emotion: emotionEmoji,
+        songs,
+        emotion,
+        keywords: extracted,
       });
 
       Alert.alert('저장 완료', '일기가 저장되었습니다.');
@@ -118,41 +132,14 @@ export default function DiaryScreen({ route }) {
     }
   }
 
-  async function handleDelete() {
-    Alert.alert('일기 삭제', '일기를 삭제하시겠습니까?', [
-      {
-        text: '아니요',
-        style: 'cancel',
-      },
-      {
-        text: '네',
-        onPress: async () => {
-          try {
-            await deleteDiary({ userId: currentUser.username, date });
-            Alert.alert('삭제 완료', '일기가 삭제되었습니다.');
-            navigation.navigate('Home');
-          } catch (err) {
-            Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
-            console.error(err);
-          }
-        },
-      },
-    ]);
-  }
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: color }]}> 
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: color }]}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.dateText}>{date}</Text>
-          <View style={{ flexDirection: 'row' }}>
-            <TouchableOpacity style={styles.iconButton} onPress={handleManualSave}>
-              <MaterialIcons name="save" size={28} color={textColor} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={handleDelete}>
-              <MaterialIcons name="delete" size={28} color={textColor} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.saveIcon} onPress={handleManualSave}>
+            <MaterialIcons name="save" size={28} color={textColor} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.textContainer}>
@@ -239,9 +226,8 @@ const styles = StyleSheet.create({
     color: textColor,
     fontWeight: 'bold',
   },
-  iconButton: {
+  saveIcon: {
     padding: 4,
-    marginLeft: 10,
   },
   textContainer: {
     flex: 1,
