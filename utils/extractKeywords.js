@@ -10,9 +10,9 @@ export async function extractKeywords(text) {
 - "what": 주요 활동 또는 사건 (예: 공부, 운동, 여행)
 
 다음 규칙을 따르세요:
-- 각 카테고리별로 **중복 없이 최대 5개**까지만 추출합니다.
 - 같은 단어가 여러 번 나와도 한 번만 추출하세요.
 - 너무 일반적인 단어(예: 오늘, 나, 있다)는 제외하고 **핵심적인 키워드만** 남기세요.
+- 응답은 반드시 **정확한 JSON 형식**으로만 반환해주세요. (설명, 해설 없이)
 
 JSON 형식 예시:
 {"who": ["지수", "엄마"], "where": ["학교", "카페"], "what": ["시험공부", "점심식사"]}
@@ -31,19 +31,25 @@ ${text}
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: '당신은 일기 내용을 분석해 핵심 키워드를 분류해주는 도우미입니다.' },
+          { role: 'system', content: '당신은 일기 내용을 분석해 핵심 키워드를 JSON으로만 추출하는 역할입니다.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.5,
+        temperature: 0.3,
         max_tokens: 300,
       })
     });
 
     const json = await response.json();
-    console.log('GPT 키워드 응답:', json);
+    const content = json.choices?.[0]?.message?.content?.trim();
 
-    const content = json.choices?.[0]?.message?.content;
-    const parsed = JSON.parse(content);
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      console.error('키워드 JSON 파싱 실패:', content);
+      parsed = { who: [], where: [], what: [] };
+    }
+
     return parsed;
   } catch (error) {
     console.error('키워드 추출 오류:', error);

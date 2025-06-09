@@ -3,7 +3,7 @@ import { collection, query, where, getDoc, getDocs, setDoc, deleteDoc, doc } fro
 import { db } from '../firebase/firebaseConfig';
 
 // 일기 저장
-export async function saveDiary({ userId, date, text, songs = [], emotion }) {
+export async function saveDiary({ userId, date, text, songs = [], emotion, keywords }) {
   try {
     const docId = `${userId}_${date}`;
     const ref = doc(db, 'diaries', docId);
@@ -14,6 +14,7 @@ export async function saveDiary({ userId, date, text, songs = [], emotion }) {
       text,
       songs,
       emotion,
+      keywords,
       updatedAt: new Date(),
     });
 

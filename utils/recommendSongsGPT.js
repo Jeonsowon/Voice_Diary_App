@@ -2,7 +2,7 @@ import { OPENAI_API_KEY } from '@env';
 
 export async function recommendSongsFromDiary(text) {
   const prompt = `
-다음 일기 내용을 읽고 감정을 분석한 후, 감정을 이모티콘과 함께 한 줄로 출력하고, 해당 감정에 어울리는 한국 노래 3곡을 추천해주세요.
+다음 일기 내용을 읽고 감정을 분석한 후, 감정을 이모티콘과 함께 한 줄로 출력하고, 감정과 일기 내용에 어울리는 한국 노래 3곡을 추천해주세요.
 
 형식 예시:
 감정: 😊 행복

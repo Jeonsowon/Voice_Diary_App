@@ -5,7 +5,7 @@ import { Audio } from 'expo-av';
 import { transcribeAudio } from '../utils/transcribeAudio';
 import { summarizeText } from '../utils/summarizeText';
 import { extractKeywords } from '../utils/extractKeywords';
-import { saveDiary, fetchDiary } from '../utils/diaryService';
+import { saveDiary, fetchDiary, deleteDiary } from '../utils/diaryService';
 import { recommendSongsFromDiary } from '../utils/recommendSongsGPT';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -74,13 +74,13 @@ export default function DiaryScreen({ route }) {
       const response = await transcribeAudio(uri);
       if (response?.text) {
         const summary = await summarizeText(response.text);
+        const extracted = await extractKeywords(response.text); // 원본 기준 추출
         const { emotion, songs } = await recommendSongsFromDiary(summary);
-        const extracted = await extractKeywords(summary);
 
         setDiaryText(summary);
+        setKeywords(extracted);
         setRecommendedSongs(songs);
         setEmotionEmoji(emotion);
-        setKeywords(extracted);
 
         await saveDiary({
           userId: currentUser.username,
@@ -132,14 +132,38 @@ export default function DiaryScreen({ route }) {
     }
   }
 
+  const handleDelete = () => {
+    Alert.alert('삭제 확인', '일기를 삭제하시겠습니까?', [
+      { text: '아니요', style: 'cancel' },
+      {
+        text: '네',
+        onPress: async () => {
+          try {
+            await deleteDiary({ userId: currentUser.username, date });
+            Alert.alert('삭제 완료', '일기가 삭제되었습니다.');
+            navigation.navigate('Home');
+          } catch (err) {
+            Alert.alert('오류', '삭제 중 문제가 발생했습니다.');
+            console.error('일기 삭제 오류:', err);
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: color }]}>
       <View style={styles.container}>
         <View style={styles.headerRow}>
           <Text style={styles.dateText}>{date}</Text>
-          <TouchableOpacity style={styles.saveIcon} onPress={handleManualSave}>
-            <MaterialIcons name="save" size={28} color={textColor} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity style={styles.saveIcon} onPress={handleManualSave}>
+              <MaterialIcons name="save" size={28} color={textColor} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.saveIcon} onPress={handleDelete}>
+              <MaterialIcons name="delete" size={28} color={textColor} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.textContainer}>
@@ -148,7 +172,7 @@ export default function DiaryScreen({ route }) {
             multiline
             value={diaryText}
             onChangeText={setDiaryText}
-            placeholder="오늘의 일기를 작성하세요."
+            placeholder="오늘의 하루는 어땠나요?"
             placeholderTextColor="#999"
           />
         </View>

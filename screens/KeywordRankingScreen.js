@@ -82,10 +82,7 @@ export default function KeywordRankingScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: color }]}> 
       <View style={styles.container}>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>월별 키워드 랭킹</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
-            <MaterialIcons name="arrow-back" size={28} color="#4E403B" />
-          </TouchableOpacity>
+          <Text style={styles.title}>⭐ 키워드 랭킹 ⭐</Text>
         </View>
 
         <View style={styles.monthNav}>
@@ -115,6 +112,9 @@ export default function KeywordRankingScreen() {
             contentContainerStyle={styles.content}
           />
         )}
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+          <MaterialIcons name="arrow-back" size={28} color="#4E403B" />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -130,15 +130,19 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4E403B',
   },
   backButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    zIndex: 1,
     backgroundColor: '#fff',
     padding: 6,
     borderRadius: 20,
