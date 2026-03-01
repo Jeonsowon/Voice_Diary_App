@@ -100,9 +100,3 @@ Firebase Firestore를 사용하여 각 사용자별 일기를 저장하며,
 - Expo 기반 빠른 개발
 - Firebase 연동으로 실시간 데이터 관리
 - React Context 기반 인증 및 테마 상태 관리
-
----
-
-## 📄 License
-
-MIT License
